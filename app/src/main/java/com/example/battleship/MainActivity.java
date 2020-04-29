@@ -3,6 +3,7 @@ package com.example.battleship;
 import androidx.appcompat.app.AppCompatActivity;
 import android.graphics.Rect;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -17,6 +18,8 @@ import android.graphics.Bitmap;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.os.Handler;
+
+import java.util.Arrays;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -30,7 +33,7 @@ public class MainActivity extends AppCompatActivity {
     boolean validTentativeShipLocation = false;
     boolean justMadeRandomShips = false;
     boolean buttonAutoShipFlag = true;
-    boolean waiting = true;
+    int waiting = 0;
     int shipsPlaced = 0;
     int[] lastShipDemoLocation = {-1,-1};
     float[] lastTouchLocation;
@@ -53,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
         this.missImg = Bitmap.createScaledBitmap(_missImg, cellSize, cellSize, true);
         Bitmap _shipImg = drawableToBitmap(getResources().getDrawable(R.drawable.ship));
         this.shipImg = Bitmap.createScaledBitmap(_shipImg, cellSize, cellSize, true);
-        placeAIShips();
         resetGame();
 
         // change the height of the ImageView containing the grid image
@@ -61,39 +63,41 @@ public class MainActivity extends AppCompatActivity {
         gridImage.getLayoutParams().height = getScreenWidth();
 
         // setup the switch grid button
-        Button clickButton = (Button) findViewById(R.id.switchGridButton);
-        clickButton.setOnClickListener( new View.OnClickListener() {
+        Button leftButton = (Button) findViewById(R.id.leftButton);
+        leftButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                gridButtonAction();
+                leftButtonAction();
             }
         });
-        clickButton.setOnLongClickListener(new View.OnLongClickListener() {
+        leftButton.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                autoPlaceShips();
+                if (placingShips) {
+                    autoPlaceShips();
+                }
                 return false;
             }
 
-            public boolean setOnLongClickListener(View v) {
-                autoPlaceShips();
-                return false;
-            }
+//            public boolean setOnLongClickListener(View v) {
+//                autoPlaceShips();
+//                return false;
+//            }
         });
 
         // setup the settings button
-        ImageButton imageButton = (ImageButton) findViewById(R.id.settingsButton);
-        imageButton.setOnClickListener( new View.OnClickListener() {
+        Button rightButton = (Button) findViewById(R.id.rightButton);
+        rightButton.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                settingsButtonAction();
+                rightButtonAction();
             }
         });
 
     }
     private void autoPlaceShips(){
-        if (waiting) { return; }
         updateTextView("Placing ships randomly...");
+        resetGame();
         Random random = new Random();
         while (placingShips){
             int randomOrientation = random.nextInt(2);
@@ -107,8 +111,7 @@ public class MainActivity extends AppCompatActivity {
                 this.previewLocations = locationsCheck;
                 for (int i = 0; i < previewLocations.length; i++) {
                     this.shipPreview = mergeBitmaps(this.shipPreview, this.shipImg, previewLocations[i][0], previewLocations[i][1]);
-                    ImageView mImg = findViewById(R.id.gridImage);
-                    mImg.setImageBitmap(this.shipPreview);
+                    setGridImage(this.shipPreview);
                     this.validTentativeShipLocation = true;
                 }
                 this.player.addShip(shipNames[shipsPlaced],previewLocations);
@@ -116,22 +119,21 @@ public class MainActivity extends AppCompatActivity {
                 this.shipsPlaced++;
                 if (this.shipsPlaced == 5) {
                     this.placingShips = false;
-                    updateButtonText("VIEW ENEMY GRID");
-                    ImageButton btn = (ImageButton) findViewById(R.id.settingsButton);
-                    btn.setImageResource(R.drawable.restart);
+                    updateLeftButtonText("VIEW ENEMY\nGRID");
+                    updateRightButtonText("NEW\nGAME");
                 }
             }
         }
-        waiting = true;
+        waiting++;
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 updateTextView("Your turn to shoot!");
                 justMadeRandomShips=true;
                 if (!otherGrid) {toggleGrid();}
+                waiting--;
             }
         },1000);
-        waiting = false;
     }
     private void placeAIShips(){
         Random random = new Random();
@@ -141,12 +143,12 @@ public class MainActivity extends AppCompatActivity {
             int randomOrientation = random.nextInt(2);
             int randomX = random.nextInt(9);
             int randomY = random.nextInt(9);
-            int[][] locationsCheck = getShipLocations(randomX,randomY,this.shipLengths[this.shipsPlaced]);
+            int[][] locationsCheck = getShipLocations(randomX,randomY,this.shipLengths[aiShipsPlaced]);
             if (validLocations(locationsCheck,false)) {
                 if (randomOrientation==1){
                     this.placingShipHorizontal=!this.placingShipHorizontal;
                 }
-                this.ai.addShip(shipNames[shipsPlaced],locationsCheck);
+                this.ai.addShip(shipNames[aiShipsPlaced],locationsCheck);
                 aiShipsPlaced++;
                 if (aiShipsPlaced == 5) {
                     placingAIShips = false;
@@ -154,8 +156,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-    private void settingsButtonAction(){
-        if (waiting) { return; }
+    private void rightButtonAction(){
+        if (waiting>0) { return; }
         if (this.placingShips){
             this.placingShipHorizontal=!this.placingShipHorizontal;
 
@@ -167,14 +169,13 @@ public class MainActivity extends AppCompatActivity {
             int action = MotionEvent.ACTION_DOWN;
             int metaState = 0;
             MotionEvent event = MotionEvent.obtain(downTime, eventTime, action, x, y, metaState);
-            ImageView mImg = findViewById(R.id.gridImage);
             onTouchEvent(event);
         } else {
             resetGame();
         }
     }
-    private void gridButtonAction(){
-        if (waiting) { return; }
+    private void leftButtonAction(){
+        if (waiting>0) { return; }
         if (this.placingShips){
             if (buttonAutoShipFlag) {
                 autoPlaceShips();
@@ -189,40 +190,35 @@ public class MainActivity extends AppCompatActivity {
                 if (this.shipsPlaced < 5){
                     updateTextView("Place your " + shipNames[shipsPlaced]);
                 } else {
-                    updateButtonText("VIEW ENEMY GRID");
+                    updateLeftButtonText("VIEW ENEMY\nGRID");
                     this.placingShips = false;
-                    ImageButton btn = (ImageButton)findViewById(R.id.settingsButton);
-                    btn.setImageResource(R.drawable.restart);
-                    waiting = true;
+                    updateRightButtonText("NEW\nGAME");
+                    waiting++;
                     handler.postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             toggleGrid();
                             updateTextView("Your turn to shoot!");
+                            waiting--;
                         }
                     },1000);
-                    waiting = false;
                 }
             }
         } else {
-//            if (this.justMadeRandomShips){
-//                this.justMadeRandomShips=false;
-//            } else {
-//                toggleGrid();
-//            }
             toggleGrid();
         }
     }
     private void resetGame(){
+        player.resetGame();
+        ai.resetGame();
+        placeAIShips();
         this.playerOneGrid = Bitmap.createScaledBitmap(this.originalGridImg, getScreenWidth(), getScreenWidth(), true);
         this.playerTwoGrid = Bitmap.createScaledBitmap(this.originalGridImg, getScreenWidth(), getScreenWidth(), true);
         this.shipPreview = Bitmap.createScaledBitmap(this.originalGridImg, getScreenWidth(), getScreenWidth(), true);
         this.playerOnesTurn = true;
         updateGrid();
         this.placingShips = true;
-        ImageButton btn = (ImageButton)findViewById(R.id.settingsButton);
-        btn.setImageResource(R.drawable.rotate);
-        player = new Player();
+        updateRightButtonText("ROTATE\nSHIP");
         playerOnesTurn = true;
         otherGrid = false;
         placingShips = true;
@@ -233,27 +229,25 @@ public class MainActivity extends AppCompatActivity {
         lastShipDemoLocation[1]=-1;
         buttonAutoShipFlag = true;
         placingShipHorizontal = true;
-        updateButtonText("AUTO PLACE SHIPS");
+        updateLeftButtonText("AUTO PLACE\nSHIPS");
         updateTextView("Game On!");
-        waiting = true;
+        waiting++;
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                updateTextView("Place your cruiser.");
+                updateTextView("Place your Cruiser");
+                waiting--;
             }
         },1000);
-        waiting = false;
     }
     @Override
     public boolean onTouchEvent(MotionEvent event){
-        if (waiting) { return false; }
+        if (waiting>0) { return false; }
 
         //
         // placing ships at the beginning of the game
         //
         if (this.placingShips){
-            buttonAutoShipFlag = false;
-            updateButtonText("CONFIRM SHIP");
             if ((event.getAction() == MotionEvent.ACTION_DOWN) || (event.getAction() == MotionEvent.ACTION_MOVE)) {
                 int xPixel = (int) event.getX();
                 int yPixel = (int) event.getY();
@@ -266,10 +260,11 @@ public class MainActivity extends AppCompatActivity {
                         this.previewLocations = locationsCheck;
                         for (int i = 0;i<previewLocations.length;i++){
                             this.shipPreview = mergeBitmaps(this.shipPreview, this.shipImg, previewLocations[i][0], previewLocations[i][1]);
-                            ImageView mImg = findViewById(R.id.gridImage);
-                            mImg.setImageBitmap(this.shipPreview);
+                            setGridImage(this.shipPreview);
                             this.validTentativeShipLocation = true;
                         }
+                        updateLeftButtonText("CONFIRM SHIP");
+                        buttonAutoShipFlag = false;
                     }
                 }
             }
@@ -280,20 +275,26 @@ public class MainActivity extends AppCompatActivity {
         //
         else {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
-                if (!this.otherGrid) {
-                    toggleGrid();
-                } else {
-                    // get location of touch in pixels
-                    int xPixel = (int) event.getX();
-                    int yPixel = (int) event.getY();
+                if (playerOnesTurn) {
+                    if (!this.otherGrid) {
+                        toggleGrid();
+                    } else {
+                        // get location of touch in pixels
+                        int xPixel = (int) event.getX();
+                        int yPixel = (int) event.getY();
 
-                    // convert pixel location to grid cell location
-                    int[] cellXY = getCell(xPixel,yPixel);
-                    int xCell = cellXY[0];
-                    int yCell = cellXY[1];
+                        // convert pixel location to grid cell location
+                        int[] cellXY = getCell(xPixel, yPixel);
+                        int xCell = cellXY[0];
+                        int yCell = cellXY[1];
 
-                    // update the grid image
-                    shoot(xCell, yCell, this.playerOnesTurn);
+                        // shoot the shot
+                        try {
+                            shoot(xCell, yCell, this.playerOnesTurn);
+                        } catch (RuntimeException e) {
+                            Log.wtf("WARNING ",e);
+                        }
+                    }
                 }
             }
         }
@@ -345,20 +346,27 @@ public class MainActivity extends AppCompatActivity {
     private void toggleGrid(){
         this.otherGrid = !this.otherGrid;
         if (this.otherGrid){
-            updateButtonText("VIEW MY GRID");
+            updateLeftButtonText("VIEW YOUR\nGRID");
         } else {
-            updateButtonText("VIEW ENEMY GRID");
+            updateLeftButtonText("VIEW ENEMY\nGRID");
         }
         updateGrid();
     }
     private void updateTextView(String toThis) {
         TextView textView = findViewById(R.id.topText);
         textView.setText(toThis);
+        Log.wtf("in-game message: ",toThis);
     }
-    private void updateButtonText(String toThis){
-        Button button = (Button) findViewById(R.id.switchGridButton);
+    private void updateLeftButtonText(String toThis){
+        Button button = (Button) findViewById(R.id.leftButton);
         button.setText(toThis);
     }
+    private void updateRightButtonText(String toThis){
+        Button button = (Button) findViewById(R.id.rightButton);
+        button.setText(toThis);
+    }
+
+    // this function is used for finding the position of the grid relative to the screen pixels
     private static int[] getImagePositionInsideImageView(ImageView imageView) {
         int[] ret = new int[4];
 
@@ -399,6 +407,8 @@ public class MainActivity extends AppCompatActivity {
 
         return ret;
     }
+
+    // this function is used for finding the position of the grid relative to the screen pixels
     private int getStatusBarHeight() {
         int result = 0;
         int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
@@ -407,73 +417,121 @@ public class MainActivity extends AppCompatActivity {
         }
         return result;
     }
+
+    // this function is used for evaluating which grid cell a pixel occupies
     private static int getScreenWidth() {
         return Resources.getSystem().getDisplayMetrics().widthPixels;
     }
 
+    private void shoot(int cellX, int cellY,boolean playerOnesTurn){
+        boolean hit;
+        boolean sunk = false;
+        String shipName = "";
+        if (!playerOnesTurn) { // enemy AI's turn
+            hit = player.shoot(cellX, cellY);
+            ai.shotReport(cellX,cellY,hit);
+            if (hit) {
+                playerOneGrid = mergeBitmaps(this.playerOneGrid, this.hitImg, cellX, cellY);
+                sunk = player.isSunk(cellX,cellY);
+                if (sunk) {
+                    shipName = player.getName(cellX,cellY);
+                    ai.informSunk(shipName);
+                }
+            } else {
+                playerOneGrid = mergeBitmaps(this.playerOneGrid, this.missImg, cellX, cellY);
+            }
+        } else { // players turn
+            try {
+                hit = ai.shoot(cellX, cellY);
+            } catch (RuntimeException e){
+                throw new RuntimeException(e);
+            }
+            if (hit) {
+                playerTwoGrid = mergeBitmaps(this.playerTwoGrid, this.shipImg, cellX, cellY);
+                playerTwoGrid = mergeBitmaps(this.playerTwoGrid, this.hitImg, cellX, cellY);
+                sunk = ai.isSunk(cellX,cellY);
+                if (sunk) {
+                    shipName = ai.getName(cellX,cellY);
+                    // showSunkShip(cellX,cellY);
+                }
+            } else {
+                playerTwoGrid = mergeBitmaps(this.playerTwoGrid, this.missImg, cellX, cellY);
+            }
+        }
+
+        // update text display
+        String player1Name,player2Name;
+        if (playerOnesTurn) {
+            player1Name = "You";
+            player2Name = "enemy's ";
+        }
+        else {
+            player1Name = "Enemy";
+            player2Name = "your ";
+        }
+        String message;
+        if (sunk){
+            message = player1Name+" sank "+player2Name+shipName+"!";
+        } else {
+            String hitOrMiss;
+            if (hit) {
+                hitOrMiss = " hit at position ";
+            } else {
+                hitOrMiss = " missed at position ";
+            }
+            String loc = cellX + ", " + cellY;
+            message = player1Name+hitOrMiss+loc;
+        }
+        updateTextView(message);
+        // change the turn
+        changeTurn();
+    }
+    private void setGridImage(Bitmap gridImg){
+        ImageView mImg = findViewById(R.id.gridImage);
+        mImg.setImageBitmap(gridImg);
+    }
+    // this function is used for overlaying icons (like sprites) over the grid background
     private Bitmap mergeBitmaps(Bitmap firstImage, Bitmap secondImage, int cellX, int cellY){
         int _cellSize = getScreenWidth() / 10;
         int pixX = cellX * _cellSize;
         int pixY = cellY * _cellSize;
         Rect gridOverlayBounds = new Rect(0,0,getScreenWidth(),getScreenWidth());
-        Rect shotOverlayBounds = new Rect(pixX,pixY,pixX+cellSize,pixY+cellSize);
+        Rect shotOverlayBounds = new Rect(pixX,pixY,pixX+_cellSize,pixY+_cellSize);
         Bitmap result = Bitmap.createBitmap(getScreenWidth(), getScreenWidth(), firstImage.getConfig());
         Canvas canvas = new Canvas(result);
         canvas.drawBitmap(firstImage, null, gridOverlayBounds, null);
         canvas.drawBitmap(secondImage, null, shotOverlayBounds, null);
         return result;
     }
-    private void shoot(int cellX, int cellY,boolean playerOnesTurn){
-        boolean hit;
-        Bitmap newGrid;
-        if (!playerOnesTurn) { // enemy AI's turn
-            hit = player.shoot(cellX,cellY);
-            ai.shotReport(cellX,cellY,hit);
-            if (hit) {
-                newGrid = mergeBitmaps(this.playerOneGrid, this.hitImg, cellX, cellY);
-
-            } else {
-                newGrid = mergeBitmaps(this.playerOneGrid, this.missImg, cellX, cellY);
-            }
-            playerOneGrid = newGrid;
-        } else { // players turn
-            hit = ai.shoot(cellX,cellY);
-            if (hit) {
-                newGrid = mergeBitmaps(this.playerTwoGrid, this.hitImg, cellX, cellY);
-            } else {
-                newGrid = mergeBitmaps(this.playerTwoGrid, this.missImg, cellX, cellY);
-            }
-            playerTwoGrid = newGrid;
+    // when enemy ship is sunk, this will show the ship on the map
+    private void showSunkShip(int x, int y){
+        int[][] locations = ai.getShipLocations(x,y);
+        String locationsString = "";
+        for (int i = 0;i<locations.length;i++){
+            locationsString+=Arrays.toString(locations[i]);
         }
-        ImageView mImg = findViewById(R.id.gridImage);
-        mImg.setImageBitmap(newGrid);
-
-        // update text display
-        String player;
-        if (playerOnesTurn) { player = "You "; }
-        else { player = "Enemy "; }
-        String hitOrMiss;
-        if (hit) { hitOrMiss = "hit at position "; }
-        else { hitOrMiss = "missed at position "; }
-        String loc = cellX + ", " + cellY;
-        updateTextView(player+hitOrMiss+loc);
-
-        // change the turn
-        changeTurn();
+        for (int i = 0;i<locations.length;i++){
+            int cellX = locations[i][0];
+            int cellY = locations[i][1];
+            playerTwoGrid = mergeBitmaps(playerTwoGrid, shipImg, cellX, cellY);
+            playerTwoGrid = mergeBitmaps(playerTwoGrid, hitImg, cellX, cellY);
+        }
+        updateGrid();
     }
     private void updateGrid(){
-        ImageView mImg = findViewById(R.id.gridImage);
         if (this.playerOnesTurn!=this.otherGrid) {
-            mImg.setImageBitmap(this.playerOneGrid);
+            setGridImage(this.playerOneGrid);
         } else {
-            mImg.setImageBitmap(this.playerTwoGrid);
+            setGridImage(this.playerTwoGrid);
         }
     }
     private void changeTurn(){
         updateGrid();
         this.playerOnesTurn = !this.playerOnesTurn;
+        if (!playerOnesTurn){ waiting++; }
+        else { waiting--; }
         this.otherGrid = false;
-        waiting = true;
+        waiting++;
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -482,19 +540,21 @@ public class MainActivity extends AppCompatActivity {
                 else { turnMessage = "Enemy's turn to shoot!"; }
                 updateTextView(turnMessage);
                 toggleGrid();
+                waiting--;
             }
         },1000);
         if (!playerOnesTurn){
-            waiting = true;
+            waiting++;
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     int[] enemyShot = ai.doTurn();
                     shoot(enemyShot[0],enemyShot[1],false);
+                    waiting--;
                 }
             },2500); // delay should be at least 1000 due to previous delay
         }
-        waiting = false;
+
     }
     private static Bitmap drawableToBitmap(Drawable drawable) {
         Bitmap bitmap = null;

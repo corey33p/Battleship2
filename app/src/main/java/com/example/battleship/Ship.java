@@ -1,17 +1,20 @@
 package com.example.battleship;
 
+import android.util.Log;
+
 import java.util.Arrays;
 
 public class Ship {
     private String name;
     private int[][] locations;
     private boolean[] hits;
-    private static boolean sunk = false;
+    private int length;
 
     Ship(String name, int[][] locationsIn){
         this.name = name;
         this.locations = locationsIn;
-        hits = new boolean[locations.length];
+        this.length = locationsIn.length;
+        hits = new boolean[length];
         for (int i = 0;i<hits.length;i++){
             hits[i] = false;
         }
@@ -37,24 +40,11 @@ public class Ship {
                     throw new RuntimeException("This location has already been hit. ");
                 } else {
                     hits[i] = true;
-                    checkSunk();
                     return true;
                 }
             }
         }
         return false;
-    }
-    public void checkSunk(){
-        if (this.sunk){return;}
-        boolean foundUnhitPart = false;
-        for (int i = 0;i<hits.length;i++){
-            if (hits[i]==false){
-                foundUnhitPart = true;
-            }
-        }
-        if (!foundUnhitPart){
-            this.sunk = true;
-        }
     }
     // checks if a location is part of the ship
     public boolean isInShip(int x, int y){
@@ -69,5 +59,13 @@ public class Ship {
     public int[][] getLocations(){
         return this.locations;
     }
-    public static boolean isSunk(){return sunk;}
+    public boolean isSunk(){
+        boolean foundUnhitPart = false;
+        for (int i = 0;i<hits.length;i++){
+            if (hits[i]==false){
+                foundUnhitPart = true;
+            }
+        }
+        return !foundUnhitPart;
+    }
 }

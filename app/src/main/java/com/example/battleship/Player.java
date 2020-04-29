@@ -1,5 +1,7 @@
 package com.example.battleship;
 
+import android.util.Log;
+
 import java.util.Arrays;
 
 public class Player {
@@ -18,9 +20,19 @@ public class Player {
     void addShip(String shipName, int[][] shipLocations) {
         playerShips[shipsAdded] = new Ship(shipName,shipLocations);
         shipsAdded++;
+        Log.wtf("ship "+shipsAdded+" "+shipName," added");
     }
 
     public boolean shoot(int x, int y) {
+        for (int i = 0;i<shotHistory.length;i++){
+            int[] shot = new int[]{x,y};
+            if (Arrays.equals(shot,shotHistory[i])){
+                throw new RuntimeException("This shot has already been taken! ");
+            }
+        }
+        if ((x<0)||(x>9)||(y<0)||(y>9)){
+            throw new RuntimeException("Shot was off the game grid! ");
+        }
         boolean successfulHit = false;
         for (int i = 0; i < 5; i++) {
             successfulHit = (successfulHit || playerShips[i].shoot(x, y));
@@ -31,17 +43,20 @@ public class Player {
         return successfulHit;
     }
 
+    // checks if the ship located at location x,y is sunk
     public boolean isSunk(int x, int y){
         for (int i = 0; i < 5; i++) {
+            Log.wtf(playerShips[i].getName()," is sunk: "+playerShips[i].isSunk());
+        }
+        for (int i = 0; i < 5; i++) {
             if (playerShips[i].isInShip(x,y)){
-                if (playerShips[i].isSunk()){
-                    return true;
-                }
+                return playerShips[i].isSunk();
             }
         }
         return false;
     }
 
+    // while placing ships in game setup, function will check if it's a valid place for the ship
     public boolean validShipLocation(int[][] locCheck){
         // iterate over the input locations
         for (int inLocIndex = 0;inLocIndex<locCheck.length;inLocIndex++) {
@@ -60,5 +75,40 @@ public class Player {
             }
         }
         return true;
+    }
+
+    public String getName(int x, int y){
+        for (int i = 0; i < 5; i++) {
+            if (playerShips[i].isInShip(x,y)){
+                if (playerShips[i].isSunk()){
+                    return playerShips[i].getName();
+                }
+            }
+        }
+        return "";
+    }
+
+    public int[][] getShipLocations(int x, int y){
+        for (int i = 0; i < 5; i++) {
+            if (playerShips[i].isInShip(x,y)){
+                if (playerShips[i].isSunk()){
+                    return playerShips[i].getLocations();
+                }
+            }
+        }
+        throw new RuntimeException("This is not a valid ship location. ");
+    }
+
+    public void resetGame(){
+        playerShips = null;
+        playerShips = new Ship[5];
+        shipsAdded = 0;
+        shotsTaken = 0;
+        shotHistory = null;
+        shotHistory = new int[100][2];
+        for (int i = 0; i<100; i++){
+            shotHistory[i][0] = -1;
+            shotHistory[i][1] = -1;
+        }
     }
 }

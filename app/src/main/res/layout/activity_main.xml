@@ -31,21 +31,19 @@
         android:textSize="28dp" />
 
     <Button
-    android:id="@+id/switchGridButton"
-    android:layout_width="wrap_content"
-    android:layout_height="match_parent"
-    android:layout_below="@+id/topText"
-    android:textSize="28dp"
-    android:text="View Enemy Grid" />
-
-    <ImageButton
-        android:id="@+id/settingsButton"
+        android:id="@+id/leftButton"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/switchGridButton"
+        android:layout_height="match_parent"
         android:layout_below="@+id/topText"
-        android:scaleType="fitCenter"
-        android:adjustViewBounds="true"
-        android:padding="30dp"
-        android:src="@drawable/settings" />
+        android:textSize="28dp"
+        android:text="VIEW ENEMY\nGRID" />
+
+    <Button
+        android:id="@+id/rightButton"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_toRightOf="@+id/leftButton"
+        android:layout_below="@+id/topText"
+        android:textSize="28dp"
+        android:text="ROTATE\nSHIP" />
 </RelativeLayout>

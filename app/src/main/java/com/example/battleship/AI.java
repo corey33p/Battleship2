@@ -2,6 +2,7 @@ package com.example.battleship;
 
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -18,6 +19,7 @@ public class AI extends Player {
     boolean lastWasAHit;
     String[] shootingDirection = new String[]{"north","south","east","west"};
     boolean[] sunkShips = new boolean[] {false,false,false,false,false};
+    // ArrayList<int[]> listOfHits = new ArrayList<int[]>();
 
     // constructor
     public AI(){
@@ -29,10 +31,9 @@ public class AI extends Player {
 
     public int[] doTurn(){
         int[] shot = new int[]{-1, -1};
-        boolean validShotFound = false;
-        while (!validShotFound) {
+        while (!validShot(shot[0],shot[1])) {
             if (multipleShipsFound) {
-                shot[0]=-1;shot[1]=-1;
+                shot = getRandomShot();
             } else if (shipFound) {
                 int direction = shootingDirectionIndex % 4;
                 if (direction == 0){
@@ -44,19 +45,30 @@ public class AI extends Player {
                 } else {
                     shot = new int[]{lastHit[0]-1,lastHit[1]};
                 }
+                if (!validShot(shot[0],shot[1])){
+                    shot = getRandomShot();
+                }
             } else { // pick a random spot
-                Random random = new Random();
-                int randomX = random.nextInt(9);
-                int randomY = random.nextInt(9);
-                shot[0]=randomX;shot[1]=randomY;
+                shot = getRandomShot();
             }
-            if (enemyGrid[shot[0]][shot[1]]==0){
-                validShotFound = true;
-            }
+            Log.wtf("AI's choice ",Arrays.toString(shot));
         }
         return shot;
     }
-
+    // gets random coordinates for a shot
+    private int[] getRandomShot(){
+        Random random = new Random();
+        int randomX = random.nextInt(9);
+        int randomY = random.nextInt(9);
+        return new int[]{randomX,randomY};
+    }
+    // checks if a shot location is valid
+    private boolean validShot(int x,int y){
+        if ((x<0)||(x>9)){ return false; }
+        if ((y<0)||(y>9)){ return false; }
+        if (enemyGrid[x][y]==0){ return true; }
+        else { return false; }
+    }
     // let the AI know which ship it has sunk
     public void informSunk(String name){
         boolean nameFound = false;
@@ -100,5 +112,15 @@ public class AI extends Player {
             lastWasAHit = false;
             shootingDirectionIndex++;
         }
+    }
+
+    @Override
+    public void resetGame(){
+        super.resetGame();
+        enemyGrid = new int[10][10];
+        hitCellCount = 0;
+        sunkShipSum = 0;
+        shipFound = false;
+        sunkShips = new boolean[] {false,false,false,false,false};
     }
 }
