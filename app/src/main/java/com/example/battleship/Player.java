@@ -24,6 +24,7 @@ public class Player {
     }
 
     public boolean shoot(int x, int y) {
+        Log.wtf("shot: ","x:"+x+"y:"+y);
         for (int i = 0;i<shotHistory.length;i++){
             int[] shot = new int[]{x,y};
             if (Arrays.equals(shot,shotHistory[i])){
@@ -45,9 +46,6 @@ public class Player {
 
     // checks if the ship located at location x,y is sunk
     public boolean isSunk(int x, int y){
-        for (int i = 0; i < 5; i++) {
-            Log.wtf(playerShips[i].getName()," is sunk: "+playerShips[i].isSunk());
-        }
         for (int i = 0; i < 5; i++) {
             if (playerShips[i].isInShip(x,y)){
                 return playerShips[i].isSunk();

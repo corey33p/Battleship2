@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     float[] lastTouchLocation;
     boolean placingShipHorizontal = true;
     String[] shipNames = {"Cruiser","Submarine","Destroyer","Battleship","Carrier"};
-    int[] shipLengths = {3,3,4,4,5};
+    int[] shipLengths = {2,3,4,4,5};
     Bitmap originalGridImg, playerOneGrid, playerTwoGrid, hitImg, missImg, shipImg, shipPreview;
     Player player = new Player();
     AI ai = new AI();
@@ -479,7 +479,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 hitOrMiss = " missed at position ";
             }
-            String loc = cellX + ", " + cellY;
+            String loc = (cellX+1) + ", " + (cellY+1);
             message = player1Name+hitOrMiss+loc;
         }
         updateTextView(message);
